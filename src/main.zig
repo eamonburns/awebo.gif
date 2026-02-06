@@ -20,7 +20,8 @@ pub fn main() !void {
 
             try awebo_gif.playTerminal(stderr, ascii.repeat);
         },
-        .gif, .frames => {
+        .gif => try awebo_gif.exportGif(gpa, "awebo.gif"),
+        .frames => {
             // TODO: Implement this
             fatal("`{t}` subcommand is unimplemented", .{cmd});
         },
@@ -73,7 +74,8 @@ const Command = union(Subcommand) {
                     .repeat = repeat orelse .once,
                 } };
             },
-            .gif, .frames => {
+            .gif => return .gif,
+            .frames => {
                 // TODO: Implement this
                 fatal("`{t}` subcommand is unimplemented", .{subcmd});
             },

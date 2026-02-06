@@ -1,4 +1,5 @@
 const std = @import("std");
+const zigimg = @import("zigimg");
 
 const Frame = struct {
     /// Text
@@ -67,4 +68,57 @@ pub fn playTerminal(stderr: *std.Io.Writer, repeat: Repeat) std.Io.Writer.Error!
 
     try stderr.writeAll("\n\n\x1b[?25h");
     try stderr.flush();
+}
+
+pub fn exportGif(gpa: std.mem.Allocator, filename: []const u8) !void {
+    const Grayscale8 = zigimg.color.Grayscale8;
+    const width = 100;
+    const height = 100;
+
+    var img = try zigimg.Image.create(gpa, width, height, .grayscale8);
+    defer img.deinit(gpa);
+
+    const pixels0: []Grayscale8 = try gpa.alloc(Grayscale8, width * height);
+    defer gpa.free(pixels0);
+    for (pixels0) |*pixel| {
+        pixel.value = 0;
+    }
+    const frame0: zigimg.Image.AnimationFrame = .{
+        .pixels = .{ .grayscale8 = pixels0 },
+        .duration = 1,
+    };
+    try img.animation.frames.append(gpa, frame0);
+
+    const pixels1: []Grayscale8 = try gpa.alloc(Grayscale8, width * height);
+    for (pixels1) |*pixel| {
+        pixel.value = 64;
+    }
+    const frame1: zigimg.Image.AnimationFrame = .{
+        .pixels = .{ .grayscale8 = pixels1 },
+        .duration = 1,
+    };
+    try img.animation.frames.append(gpa, frame1);
+
+    const pixels2: []Grayscale8 = try gpa.alloc(Grayscale8, width * height);
+    for (pixels2) |*pixel| {
+        pixel.value = 128;
+    }
+    const frame2: zigimg.Image.AnimationFrame = .{
+        .pixels = .{ .grayscale8 = pixels2 },
+        .duration = 1,
+    };
+    try img.animation.frames.append(gpa, frame2);
+
+    const pixels3: []Grayscale8 = try gpa.alloc(Grayscale8, width * height);
+    for (pixels3) |*pixel| {
+        pixel.value = 192;
+    }
+    const frame3: zigimg.Image.AnimationFrame = .{
+        .pixels = .{ .grayscale8 = pixels3 },
+        .duration = 1,
+    };
+    try img.animation.frames.append(gpa, frame3);
+
+    var write_buf: [1024]u8 = undefined;
+    try img.writeToFilePath(gpa, filename, &write_buf, .{ .gif = .{ .auto_convert = true } });
 }
