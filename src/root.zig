@@ -72,53 +72,93 @@ pub fn playTerminal(stderr: *std.Io.Writer, repeat: Repeat) std.Io.Writer.Error!
 }
 
 pub fn exportGif(gpa: std.mem.Allocator, filename: []const u8) !void {
-    const Grayscale8 = zigimg.color.Grayscale8;
-    const width = 100;
-    const height = 100;
+    const ttf: TrueType = try .load(@embedFile("font"));
+    const vm = ttf.verticalMetrics();
 
-    var img: zigimg.Image = try .create(gpa, width, height, .grayscale8);
+    const scale = ttf.scaleForPixelHeight(100);
+    const glyph_height: unit.Font = .fromInt(vm.ascent - vm.descent);
+    // const glyph_height_px: unit.Pixel = glyph_height.toPixel(scale);
+    const line_height: unit.Font = glyph_height.plus(.fromInt(vm.line_gap));
+    const line_height_px: unit.Pixel = line_height.toPixel(scale);
+    // std.debug.print("{s}: line_height={d}, line_height_px={d}\n", .{ @src().fn_name, line_height, line_height_px });
+
+    // const glyph_height: usize = @intFromFloat(@as(f32, @floatFromInt(vm.ascent)) * scale);
+    // NOTE: It is a monospace font, so HMetrics should be the same for all glyphs
+    const hm = ttf.glyphHMetrics(ttf.codepointGlyphIndex('W'));
+    const advance_width: unit.Font = .fromInt(hm.advance_width);
+    const advance_width_px: unit.Pixel = advance_width.toPixel(scale);
+    // const char_width: usize = @intFromFloat(@as(f32, @floatFromInt(hm.advance_width)) * scale);
+
+    const max_character_count = blk: {
+        var max: usize = 0;
+        for (frames) |frame| {
+            max = @max(max, frame.t.len);
+        }
+        break :blk max;
+    };
+    // const text = "Testing";
+    // const max_character_count = text.len;
+
+    // const image_width = char_width * (max_character_count + 4);
+    const image_width = advance_width_px.times(@intCast(max_character_count + 4));
+    const image_height: unit.Pixel = line_height_px.times(3);
+
+    var img: zigimg.Image = try .create(gpa, @intCast(@intFromEnum(image_width)), @intCast(@intFromEnum(image_height)), .grayscale8);
     defer img.deinit(gpa);
 
-    const pixels0: []Grayscale8 = try gpa.alloc(Grayscale8, width * height);
-    defer gpa.free(pixels0);
-    for (pixels0) |*pixel| {
-        pixel.value = 0;
+    for (frames) |frame| {
+        const pixels = try textToPixels(gpa, ttf, scale, frame.t, image_width, image_height);
+        const animation_frame: zigimg.Image.AnimationFrame = .{
+            .pixels = pixels,
+            .duration = frame.s,
+        };
+        try img.animation.frames.append(gpa, animation_frame);
     }
-    const frame0: zigimg.Image.AnimationFrame = .{
-        .pixels = .{ .grayscale8 = pixels0 },
-        .duration = 1,
-    };
-    try img.animation.frames.append(gpa, frame0);
 
-    const pixels1: []Grayscale8 = try gpa.alloc(Grayscale8, width * height);
-    for (pixels1) |*pixel| {
-        pixel.value = 64;
-    }
-    const frame1: zigimg.Image.AnimationFrame = .{
-        .pixels = .{ .grayscale8 = pixels1 },
-        .duration = 1,
-    };
-    try img.animation.frames.append(gpa, frame1);
+    // const Grayscale8 = zigimg.color.Grayscale8;
+    // const width = 100;
+    // const height = 100;
 
-    const pixels2: []Grayscale8 = try gpa.alloc(Grayscale8, width * height);
-    for (pixels2) |*pixel| {
-        pixel.value = 128;
-    }
-    const frame2: zigimg.Image.AnimationFrame = .{
-        .pixels = .{ .grayscale8 = pixels2 },
-        .duration = 1,
-    };
-    try img.animation.frames.append(gpa, frame2);
-
-    const pixels3: []Grayscale8 = try gpa.alloc(Grayscale8, width * height);
-    for (pixels3) |*pixel| {
-        pixel.value = 192;
-    }
-    const frame3: zigimg.Image.AnimationFrame = .{
-        .pixels = .{ .grayscale8 = pixels3 },
-        .duration = 1,
-    };
-    try img.animation.frames.append(gpa, frame3);
+    // const pixels0: []Grayscale8 = try gpa.alloc(Grayscale8, width * height);
+    // defer gpa.free(pixels0);
+    // for (pixels0) |*pixel| {
+    //     pixel.value = 0;
+    // }
+    // const frame0: zigimg.Image.AnimationFrame = .{
+    //     .pixels = .{ .grayscale8 = pixels0 },
+    //     .duration = 1,
+    // };
+    // try img.animation.frames.append(gpa, frame0);
+    //
+    // const pixels1: []Grayscale8 = try gpa.alloc(Grayscale8, width * height);
+    // for (pixels1) |*pixel| {
+    //     pixel.value = 64;
+    // }
+    // const frame1: zigimg.Image.AnimationFrame = .{
+    //     .pixels = .{ .grayscale8 = pixels1 },
+    //     .duration = 1,
+    // };
+    // try img.animation.frames.append(gpa, frame1);
+    //
+    // const pixels2: []Grayscale8 = try gpa.alloc(Grayscale8, width * height);
+    // for (pixels2) |*pixel| {
+    //     pixel.value = 128;
+    // }
+    // const frame2: zigimg.Image.AnimationFrame = .{
+    //     .pixels = .{ .grayscale8 = pixels2 },
+    //     .duration = 1,
+    // };
+    // try img.animation.frames.append(gpa, frame2);
+    //
+    // const pixels3: []Grayscale8 = try gpa.alloc(Grayscale8, width * height);
+    // for (pixels3) |*pixel| {
+    //     pixel.value = 192;
+    // }
+    // const frame3: zigimg.Image.AnimationFrame = .{
+    //     .pixels = .{ .grayscale8 = pixels3 },
+    //     .duration = 1,
+    // };
+    // try img.animation.frames.append(gpa, frame3);
 
     var write_buf: [1024]u8 = undefined;
     try img.writeToFilePath(gpa, filename, &write_buf, .{ .gif = .{ .auto_convert = true } });
