@@ -8,6 +8,14 @@
             .url = "git+https://github.com/zigimg/zigimg.git#fb74dfb7c6d83f2bd01a229826669451525a4ba8",
             .hash = "zigimg-0.1.0-8_eo2kSGFwADIkeZYTgfnLOV-khh6ZRoGmK6F2-s_QbY",
         },
+        .TrueType = .{
+            .url = "https://codeberg.org/andrewrk/TrueType/archive/main.tar.gz",
+            .hash = "TrueType-0.0.0-Ne-mWLVxAQAvMshfhjrJh3GbRHBLSNtF-zXZ0Zt_bHGP",
+        },
+        .@"0xProto" = .{
+            .url = "https://github.com/0xType/0xProto/releases/download/2.502/0xProto_2_502.zip",
+            .hash = "N-V-__8AAD9DKQD3VBrTIPzidyHHJoprk3gr8_LzYqWa4fOf",
+        },
     },
     .paths = .{
         "build.zig",

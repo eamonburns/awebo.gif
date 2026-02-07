@@ -5,13 +5,19 @@ pub fn build(b: *std.Build) void {
     const optimize = b.standardOptimizeOption(.{});
 
     const zigimg = b.dependency("zigimg", .{}).module("zigimg");
+    const TrueType = b.dependency("TrueType", .{}).module("TrueType");
+    const @"0xProto" = b.dependency("0xProto", .{});
 
     const mod = b.addModule("awebo_gif", .{
         .root_source_file = b.path("src/root.zig"),
         .target = target,
         .imports = &.{
             .{ .name = "zigimg", .module = zigimg },
+            .{ .name = "TrueType", .module = TrueType },
         },
+    });
+    mod.addAnonymousImport("font", .{
+        .root_source_file = @"0xProto".path("No-Ligatures/0xProto-Regular-NL.ttf"),
     });
 
     const exe = b.addExecutable(.{

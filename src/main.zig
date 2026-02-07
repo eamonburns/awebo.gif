@@ -21,10 +21,7 @@ pub fn main() !void {
             try awebo_gif.playTerminal(stderr, ascii.repeat);
         },
         .gif => try awebo_gif.exportGif(gpa, "awebo.gif"),
-        .frames => {
-            // TODO: Implement this
-            fatal("`{t}` subcommand is unimplemented", .{cmd});
-        },
+        .frames => try awebo_gif.exportFrames(gpa, "awebo"),
     }
 }
 
@@ -75,10 +72,7 @@ const Command = union(Subcommand) {
                 } };
             },
             .gif => return .gif,
-            .frames => {
-                // TODO: Implement this
-                fatal("`{t}` subcommand is unimplemented", .{subcmd});
-            },
+            .frames => return .frames,
         }
     }
 };
